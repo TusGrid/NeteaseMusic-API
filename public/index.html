@@ -105,21 +105,8 @@ curl -s {origin}/search?keywords=网易云</code></pre>
   </main>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      var origin = window.location.origin;
-      document.getElementById('base-url').textContent = origin;
-      document.getElementById('current-url').textContent = window.location.href;
-
-      fetch('/inner/version', { method: 'POST' })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          var v = data && data.data && data.data.version;
-          if (v) document.getElementById('api-version').textContent = 'v' + v;
-          var pre = document.querySelector('pre code');
-          if (pre) pre.textContent = pre.textContent.replace(/\{origin\}/g, origin);
-        })
-        .catch(function () {});
-    });
+    // Redirect to artist search page
+    window.location.href = '/artist_search.html';
   </script>
 </body>
 </html>
