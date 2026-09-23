@@ -7,6 +7,8 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 20px; padding-bottom: 80px; }
+    #bgOverlay1, #bgOverlay2 { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-size: cover; background-position: center; opacity: 0; z-index: -1; pointer-events: none; transition: opacity 0.5s ease; transform: scale(1.05); filter: blur(30px); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 10%, black 50%, black 75%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, transparent 10%, black 50%, black 75%, transparent 100%); }
+    #bgOverlay1.active, #bgOverlay2.active { opacity: 0.5; }
     .container { max-width: 800px; margin: 0 auto; }
     h1 { margin-bottom: 20px; font-size: 24px; }
 
@@ -61,8 +63,8 @@
     .pk-progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; margin-top: 10px; overflow: hidden; }
     .pk-progress-fill { height: 100%; background: linear-gradient(90deg, #c20c0c, #e53e3e); transition: width 0.3s; }
 
-    .pk-battle { display: flex; gap: 20px; margin-bottom: 30px; align-items: stretch; }
-    .pk-song { flex: 1; min-width: 0; background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; border: 3px solid transparent; display: flex; flex-direction: column; }
+    .pk-battle { display: flex; gap: 20px; margin-bottom: 30px; align-items: stretch; justify-content: center; }
+    .pk-song { flex: 1; min-width: 0; max-width: 350px; background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; border: 3px solid transparent; display: flex; flex-direction: column; }
     .pk-song:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); border-color: #c20c0c; }
     .pk-song.selected { border-color: #c20c0c; background: #fff5f5; }
     .pk-song-cover { width: 100%; aspect-ratio: 1; border-radius: 8px; margin-bottom: 12px; background: #f5f5f5; object-fit: cover; }
@@ -84,20 +86,40 @@
     .champion-name { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
     .champion-artist { font-size: 18px; color: #666; }
 
-    .result-visual { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .result-visual { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden; }
     .result-visual-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #333; text-align: center; }
-    .visual-round { margin-bottom: 12px; }
+    .visual-round { margin-bottom: 0; }
     .visual-round:last-child { margin-bottom: 0; }
     .visual-round-label { display: none; }
-    .visual-images { display: flex; gap: 4px; justify-content: center; }
-    .visual-img-wrapper { position: relative; flex: 1; min-width: 0; border-radius: 8px; overflow: hidden; background: #f5f5f5; aspect-ratio: 1 / 1; }
+    .visual-images { display: flex; gap: 0; justify-content: center; }
+    .visual-img-wrapper { position: relative; flex: 1; min-width: 0; border-radius: 0; overflow: hidden; background: #f5f5f5; aspect-ratio: 1 / 1; margin: 0; padding: 0; }
     .visual-img-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.3s; }
-    .visual-img-wrapper:not(.winner) img { opacity: 0.35; }
-    .visual-img-label { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.75)); color: white; padding: 15px 4px 4px; font-size: 11px; text-align: center; white-space: normal; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; max-height: 2.6em; -webkit-line-clamp: 2; -webkit-box-orient: vertical; display: -webkit-box; }
-    .visual-img-wrapper.winner { border: 2px solid #c20c0c; }
-    .visual-img-wrapper.winner::after { content: '✓'; position: absolute; top: 2px; right: 2px; background: #c20c0c; color: white; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; }
+    .visual-img-label { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.45)); color: white; padding: 15px 4px 4px; font-size: clamp(11px, 2.5vw, 18px); text-align: center; white-space: normal; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; max-height: 2.6em; -webkit-line-clamp: 2; -webkit-box-orient: vertical; display: -webkit-box; }
+    .visual-img-wrapper.winner { border: none !important; outline: none !important; box-shadow: none !important; }
+    .visual-img-wrapper.champion { aspect-ratio: 2 / 1; background: transparent; }
+    .visual-champion-row { position: relative; overflow: hidden; border-radius: 0; margin-bottom: 0; }
+    .visual-champion-box { position: relative; z-index: 1; background: rgba(20,20,20,0.85); padding: 20px; text-align: center; }
+    .visual-champion-crown { font-size: 40px; margin-bottom: 8px; }
+    .visual-champion-cover { width: 120px; height: 120px; border-radius: 8px; margin: 10px auto; background: #f5f5f5; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .visual-champion-name { font-size: 18px; font-weight: 700; margin-bottom: 5px; color: white; }
+    .visual-champion-artist { font-size: 13px; color: rgba(255,255,255,0.7); }
+    .visual-champion-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; overflow: hidden; opacity: 0.6; }
+    .visual-champion-bg-track { display: flex; flex-direction: column; gap: 0; animation: championBgScroll 120s linear infinite; width: max-content; }
+    .visual-champion-bg-row { display: flex; gap: 0; }
+    .visual-champion-bg-row img { width: 80px; height: 80px; object-fit: cover; flex-shrink: 0; display: block; }
+    @keyframes championBgScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
 
     .result-bracket { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .bracket-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; background: #f5f5f5; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+    .bracket-toggle:hover { background: #eee; }
+    .bracket-toggle-text { font-size: 14px; font-weight: 500; color: #333; }
+    .bracket-arrow { font-size: 12px; color: #666; transition: transform 0.3s; }
+    .bracket-arrow.expanded { transform: rotate(180deg); }
+    .bracket-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+    .bracket-content.expanded { max-height: 5000px; }
     .result-round { margin-bottom: 20px; }
     .result-round-title { font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #c20c0c; }
     .result-match { display: flex; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 8px; margin-bottom: 8px; }
@@ -231,6 +253,8 @@
   </style>
 </head>
 <body>
+  <div id="bgOverlay1"></div>
+  <div id="bgOverlay2"></div>
   <div class="container">
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="输入歌手名称..." />
@@ -258,7 +282,7 @@
       <div style="display:flex;gap:10px;">
         <button class="btn-clear" id="clearBtn" onclick="clearSelection()" disabled>清空选择</button>
         <button class="btn-next" id="nextBtn" onclick="startPK()" disabled>下一步</button>
-        <button class="btn-debug" onclick="debugSkipToResults()" style="display:none;padding:7px 16px;font-size:13px;background:#ff6b6b;color:white;border:none;border-radius:6px;cursor:pointer;">Debug</button>
+        <button class="btn-debug" onclick="debugSkipToResults()" style="padding:7px 16px;font-size:13px;background:#ff6b6b;color:white;border:none;border-radius:6px;cursor:pointer;">Debug</button>
       </div>
     </div>
   </div>
@@ -295,23 +319,17 @@
   </div>
 
   <div class="result-container" id="resultContainer">
-    <div class="result-header">
-      <h1>歌曲擂台结果</h1>
-    </div>
-
-    <div class="champion" id="championBox">
-      <div class="champion-crown">👑</div>
-      <img class="champion-cover" id="championCover" src="" alt="冠军封面" />
-      <div class="champion-name" id="championName"></div>
-      <div class="champion-artist" id="championArtist"></div>
-    </div>
-
     <div class="result-visual" id="resultVisual">
-      <div class="result-visual-title">擂台总览</div>
       <div id="visualContent"></div>
     </div>
 
-    <div class="result-bracket" id="resultBracket"></div>
+    <div class="result-bracket" id="resultBracket">
+      <div class="bracket-toggle" onclick="toggleBracket()">
+        <span class="bracket-toggle-text">查看完整对阵详情</span>
+        <span class="bracket-arrow">▼</span>
+      </div>
+      <div class="bracket-content" id="bracketContent"></div>
+    </div>
 
     <button class="btn-back" onclick="backToSelection()">返回重新选择</button>
   </div>
@@ -341,6 +359,9 @@
 
         if (data.code === 200 && data.result && data.result.artists) {
           displayArtists(data.result.artists);
+          setTimeout(() => {
+            document.getElementById('artistSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
         } else {
           showError('未找到相关歌手');
         }
@@ -386,6 +407,9 @@
 
         if (data.code === 200 && data.songs) {
           displaySongs(data.songs);
+          setTimeout(() => {
+            document.getElementById('songSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
         } else {
           showError('获取歌曲列表失败: ' + (data.msg || '未知错误'));
         }
@@ -583,6 +607,15 @@
       document.getElementById('pkSong1').className = 'pk-song';
       document.getElementById('pkSong2').className = 'pk-song';
       document.getElementById('pkNextBtn').disabled = true;
+
+      const overlay1 = document.getElementById('bgOverlay1');
+      const overlay2 = document.getElementById('bgOverlay2');
+      overlay1.classList.remove('active');
+      overlay2.classList.remove('active');
+      setTimeout(() => {
+        overlay1.style.backgroundImage = '';
+        overlay2.style.backgroundImage = '';
+      }, 500);
     }
 
     function getSongCover(song) {
@@ -606,12 +639,39 @@
       const winner = index === 0 ? match.song1 : match.song2;
       match.winner = winner;
 
+      const song1El = document.getElementById('pkSong1');
+      const song2El = document.getElementById('pkSong2');
+      const coverUrl = index === 0 ? getSongCover(match.song1) : getSongCover(match.song2);
+
       if (index === 0) {
-        document.getElementById('pkSong1').className = 'pk-song selected';
-        document.getElementById('pkSong2').className = 'pk-song';
+        song1El.className = 'pk-song selected';
+        song2El.className = 'pk-song';
       } else {
-        document.getElementById('pkSong1').className = 'pk-song';
-        document.getElementById('pkSong2').className = 'pk-song selected';
+        song1El.className = 'pk-song';
+        song2El.className = 'pk-song selected';
+      }
+
+      const overlay1 = document.getElementById('bgOverlay1');
+      const overlay2 = document.getElementById('bgOverlay2');
+
+      const activeOverlay = overlay1.classList.contains('active') ? overlay1 :
+                           overlay2.classList.contains('active') ? overlay2 : null;
+
+      if (activeOverlay) {
+        const inactiveOverlay = activeOverlay === overlay1 ? overlay2 : overlay1;
+        inactiveOverlay.style.backgroundImage = `url(${coverUrl})`;
+        inactiveOverlay.classList.add('active');
+        setTimeout(() => {
+          activeOverlay.classList.remove('active');
+          setTimeout(() => {
+            activeOverlay.style.backgroundImage = '';
+          }, 500);
+        }, 50);
+      } else {
+        overlay1.style.backgroundImage = `url(${coverUrl})`;
+        setTimeout(() => {
+          overlay1.classList.add('active');
+        }, 50);
       }
 
       document.getElementById('pkNextBtn').disabled = false;
@@ -659,16 +719,50 @@
       document.getElementById('pkContainer').style.display = 'none';
       document.getElementById('resultContainer').style.display = 'block';
 
-      document.getElementById('championName').textContent = champion.name;
-      const artist = champion.ar ? champion.ar.map(a => a.name).join(', ') : '未知歌手';
-      document.getElementById('championArtist').textContent = artist;
-      document.getElementById('championCover').src = getSongCover(champion);
-
-      // Generate visual content - show from champion to 32强
+      // Generate visual content - show champion first, then all rounds
       const visualContent = document.getElementById('visualContent');
       visualContent.innerHTML = '';
 
-      // Reverse order: champion first, then 2强, 4强, 8强, 16强, 32强
+      // Champion row with scrolling background - 4 rows
+      const championRow = document.createElement('div');
+      championRow.className = 'visual-champion-row';
+      const championArtist = champion.ar ? champion.ar.map(a => a.name).join(', ') : '未知歌手';
+
+      // Collect all song covers from all rounds
+      const allCovers = [];
+      pkState.rounds.forEach(round => {
+        round.matches.forEach(match => {
+          if (match.song1) allCovers.push(getSongCover(match.song1));
+          if (match.song2) allCovers.push(getSongCover(match.song2));
+        });
+      });
+
+      // Split into 4 rows
+      const rowCount = 4;
+      const perRow = Math.ceil(allCovers.length / rowCount);
+      const rows = [];
+      for (let i = 0; i < rowCount; i++) {
+        const rowCovers = allCovers.slice(i * perRow, (i + 1) * perRow);
+        // Duplicate for seamless loop
+        const doubled = [...rowCovers, ...rowCovers];
+        const rowHtml = `<div class="visual-champion-bg-row">${doubled.map(src => `<img src="${src}" alt="" />`).join('')}</div>`;
+        rows.push(rowHtml);
+      }
+
+      championRow.innerHTML = `
+        <div class="visual-champion-bg">
+          <div class="visual-champion-bg-track">${rows.join('')}</div>
+        </div>
+        <div class="visual-champion-box">
+          <div class="visual-champion-crown">👑</div>
+          <img class="visual-champion-cover" src="${getSongCover(champion)}" alt="${champion.name}" />
+          <div class="visual-champion-name">${champion.name}</div>
+          <div class="visual-champion-artist">${championArtist}</div>
+        </div>
+      `;
+      visualContent.appendChild(championRow);
+
+      // Reverse order: 2强, 4强, 8强, 16强, 32强
       const reversedRounds = [...pkState.rounds].reverse();
 
       reversedRounds.forEach((round, roundIndex) => {
@@ -684,36 +778,25 @@
         imagesDiv.className = 'visual-images';
 
         round.matches.forEach(match => {
-          if (!match.song1) return;
+          if (!match.song1 || !match.song2) return;
+
+          const hideLabel = round.name.includes('16') || round.name.includes('32');
 
           const isWinner1 = match.winner && match.winner.id === match.song1.id;
 
-          // Song 1
-          const wrapper1 = document.createElement('div');
-          wrapper1.className = `visual-img-wrapper ${isWinner1 ? 'winner' : ''}`;
+          [match.song1, match.song2].forEach(song => {
+            const isWinner = match.winner && song.id === match.winner.id;
+            const wrapper = document.createElement('div');
+            wrapper.className = `visual-img-wrapper ${isWinner ? 'winner' : ''}`;
 
-          const cover1 = getSongCover(match.song1);
-          const name1 = match.song1.name;
-          wrapper1.innerHTML = `
-            <img src="${cover1}" alt="${name1}" />
-            <div class="visual-img-label">${name1}</div>
-          `;
-          imagesDiv.appendChild(wrapper1);
-
-          // Song 2 (if exists)
-          if (match.song2) {
-            const isWinner2 = match.winner && match.winner.id === match.song2.id;
-            const wrapper2 = document.createElement('div');
-            wrapper2.className = `visual-img-wrapper ${isWinner2 ? 'winner' : ''}`;
-
-            const cover2 = getSongCover(match.song2);
-            const name2 = match.song2.name;
-            wrapper2.innerHTML = `
-              <img src="${cover2}" alt="${name2}" />
-              <div class="visual-img-label">${name2}</div>
+            const cover = getSongCover(song);
+            const name = song.name;
+            wrapper.innerHTML = `
+              <img src="${cover}" alt="${name}" />
+              ${hideLabel ? '' : `<div class="visual-img-label">${name}</div>`}
             `;
-            imagesDiv.appendChild(wrapper2);
-          }
+            imagesDiv.appendChild(wrapper);
+          });
         });
 
         roundDiv.appendChild(imagesDiv);
@@ -721,8 +804,8 @@
       });
 
       // Generate bracket content
-      const bracket = document.getElementById('resultBracket');
-      bracket.innerHTML = '';
+      const bracketContent = document.getElementById('bracketContent');
+      bracketContent.innerHTML = '';
 
       pkState.rounds.forEach((round, roundIndex) => {
         const roundDiv = document.createElement('div');
@@ -751,8 +834,24 @@
           roundDiv.appendChild(matchDiv);
         });
 
-        bracket.appendChild(roundDiv);
+        bracketContent.appendChild(roundDiv);
       });
+    }
+
+    function toggleBracket() {
+      const content = document.getElementById('bracketContent');
+      const arrow = document.querySelector('.bracket-arrow');
+      const text = document.querySelector('.bracket-toggle-text');
+
+      if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        arrow.classList.remove('expanded');
+        text.textContent = '查看完整对阵详情';
+      } else {
+        content.classList.add('expanded');
+        arrow.classList.add('expanded');
+        text.textContent = '收起对阵详情';
+      }
     }
 
     function backToSelection() {
@@ -760,6 +859,15 @@
       document.getElementById('pkContainer').style.display = 'none';
       document.querySelector('.container').style.display = 'block';
       document.getElementById('selectionBar').style.display = 'block';
+
+      const overlay1 = document.getElementById('bgOverlay1');
+      const overlay2 = document.getElementById('bgOverlay2');
+      overlay1.classList.remove('active');
+      overlay2.classList.remove('active');
+      setTimeout(() => {
+        overlay1.style.backgroundImage = '';
+        overlay2.style.backgroundImage = '';
+      }, 500);
     }
 
     function debugSkipToResults() {
