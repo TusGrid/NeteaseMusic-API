@@ -3,110 +3,839 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <link rel="icon" href="docs/netease.png">
-  <title>网易云音乐 API Enhanced</title>
+  <title>歌！曲！对！决！</title>
   <style>
-    :root {
-      --fg: #333;
-      --muted: #666;
-      --border: #ddd;
-      --bg: #f5f5f5;
-      --panel: #ffffff;
-      --accent: #333;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 20px; padding-bottom: 80px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; font-size: 24px; }
+
+    .search-box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; gap: 10px; }
+    .search-box input { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }
+    .search-box button { padding: 10px 20px; font-size: 16px; background: #c20c0c; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+    .search-box button:hover { background: #a00a0a; }
+    .search-box button:disabled { background: #ccc; cursor: not-allowed; }
+
+    .result-section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .result-section h2 { margin-bottom: 15px; font-size: 20px; }
+
+    .artist-list { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .artist-item { display: flex; flex-direction: column; align-items: center; padding: 12px; border: 1px solid #eee; border-radius: 8px; cursor: pointer; transition: background 0.2s; text-align: center; }
+    .artist-item:hover { background: #f9f9f9; }
+    .artist-avatar { width: 60px; height: 60px; border-radius: 50%; margin-bottom: 8px; background: #eee; object-fit: cover; }
+    .artist-name { font-weight: 500; font-size: 14px; }
+    .artist-info { font-size: 12px; color: #666; margin-top: 4px; }
+
+    .song-list { list-style: none; display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px; }
+    .song-item { display: flex; align-items: center; padding: 10px; border: 2px solid #eee; border-radius: 8px; height: 65px; overflow: hidden; cursor: pointer; transition: all 0.2s; user-select: none; }
+    .song-item:hover { border-color: #c20c0c; }
+    .song-item.selected { border-color: #c20c0c; background: #fff0f0; }
+    .song-item.disabled { opacity: 0.5; cursor: not-allowed; }
+    .song-album-cover { width: 45px; height: 45px; min-width: 45px; border-radius: 4px; margin-right: 10px; flex-shrink: 0; background: #eee; object-fit: cover; }
+    .song-info-box { flex: 1; min-width: 0; overflow: hidden; }
+    .song-name { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .song-info { font-size: 12px; color: #666; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .loading { text-align: center; padding: 20px; color: #666; }
+    .error { color: #c20c0c; padding: 10px; background: #fff0f0; border-radius: 4px; margin-bottom: 10px; }
+
+    .selected-artist { background: #f0f0f0; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+    .selected-artist strong { color: #c20c0c; }
+
+    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #ddd; padding: 15px 20px; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); z-index: 100; }
+    .bottom-bar .container { max-width: 800px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    .selected-count { font-size: 16px; font-weight: 500; }
+    .selected-count span { color: #c20c0c; font-size: 20px; }
+    .btn-clear { padding: 8px 16px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    .btn-clear:hover { background: #555; }
+    .btn-clear:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-next { padding: 10px 24px; background: #c20c0c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500; }
+    .btn-next:hover { background: #a00a0a; }
+    .btn-next:disabled { background: #ccc; cursor: not-allowed; }
+
+    .pk-container { display: none; max-width: 800px; margin: 0 auto; }
+    .pk-header { text-align: center; margin-bottom: 30px; }
+    .pk-header h1 { font-size: 28px; margin-bottom: 10px; }
+    .pk-round { font-size: 20px; color: #c20c0c; font-weight: 600; margin-bottom: 10px; }
+    .pk-progress { font-size: 14px; color: #666; }
+    .pk-progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+    .pk-progress-fill { height: 100%; background: linear-gradient(90deg, #c20c0c, #e53e3e); transition: width 0.3s; }
+
+    .pk-battle { display: flex; gap: 20px; margin-bottom: 30px; align-items: stretch; }
+    .pk-song { flex: 1; min-width: 0; background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; border: 3px solid transparent; display: flex; flex-direction: column; }
+    .pk-song:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); border-color: #c20c0c; }
+    .pk-song.selected { border-color: #c20c0c; background: #fff5f5; }
+    .pk-song-cover { width: 100%; aspect-ratio: 1; border-radius: 8px; margin-bottom: 12px; background: #f5f5f5; object-fit: cover; }
+    .pk-song-name { font-size: 16px; font-weight: 600; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pk-song-artist { font-size: 13px; color: #666; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pk-song-vote { margin-top: auto; text-align: center; padding: 10px; background: #c20c0c; color: white; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .pk-vs { display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 900; color: #c20c0c; min-width: 60px; flex-shrink: 0; }
+
+    .pk-btn-next { display: block; width: 100%; max-width: 400px; margin: 20px auto; padding: 15px 30px; background: #c20c0c; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; }
+    .pk-btn-next:hover { background: #a00a0a; }
+    .pk-btn-next:disabled { background: #ccc; cursor: not-allowed; }
+
+    .result-container { display: none; max-width: 800px; margin: 0 auto; }
+    .result-header { text-align: center; margin-bottom: 30px; }
+    .result-header h1 { font-size: 32px; margin-bottom: 10px; }
+    .champion { background: linear-gradient(135deg, #ffd700, #ffed4e); padding: 30px; border-radius: 16px; text-align: center; margin-bottom: 30px; box-shadow: 0 8px 24px rgba(255, 215, 0, 0.3); }
+    .champion-crown { font-size: 60px; margin-bottom: 10px; }
+    .champion-cover { width: 200px; height: 200px; border-radius: 12px; margin: 15px auto; background: #f5f5f5; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .champion-name { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+    .champion-artist { font-size: 18px; color: #666; }
+
+    .result-visual { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .result-visual-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #333; text-align: center; }
+    .visual-round { margin-bottom: 12px; }
+    .visual-round:last-child { margin-bottom: 0; }
+    .visual-round-label { display: none; }
+    .visual-images { display: flex; gap: 4px; justify-content: center; }
+    .visual-img-wrapper { position: relative; flex: 1; min-width: 0; border-radius: 8px; overflow: hidden; background: #f5f5f5; aspect-ratio: 1 / 1; }
+    .visual-img-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.3s; }
+    .visual-img-wrapper:not(.winner) img { opacity: 0.35; }
+    .visual-img-label { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.75)); color: white; padding: 15px 4px 4px; font-size: 11px; text-align: center; white-space: normal; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; max-height: 2.6em; -webkit-line-clamp: 2; -webkit-box-orient: vertical; display: -webkit-box; }
+    .visual-img-wrapper.winner { border: 2px solid #c20c0c; }
+    .visual-img-wrapper.winner::after { content: '✓'; position: absolute; top: 2px; right: 2px; background: #c20c0c; color: white; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; }
+
+    .result-bracket { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .result-round { margin-bottom: 20px; }
+    .result-round-title { font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #c20c0c; }
+    .result-match { display: flex; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 8px; margin-bottom: 8px; }
+    .result-song { flex: 1; font-size: 14px; }
+    .result-song.winner { font-weight: 600; color: #c20c0c; }
+    .result-song.loser { color: #999; text-decoration: line-through; }
+    .result-vs { padding: 0 15px; font-weight: 700; color: #666; }
+
+    .btn-back { display: block; width: 100%; max-width: 400px; margin: 20px auto; padding: 15px 30px; background: #666; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    .btn-back:hover { background: #555; }
+
+    @media (max-width: 768px) {
+      body { padding: 10px; padding-bottom: 80px; }
+      .container { padding: 0 5px; }
+      h1 { font-size: 20px; margin-bottom: 15px; }
+
+      .search-box { padding: 15px; margin-bottom: 15px; }
+      .search-box input { padding: 8px; font-size: 14px; }
+      .search-box button { padding: 8px 16px; font-size: 14px; }
+
+      .result-section { padding: 15px; margin-bottom: 15px; }
+      .result-section h2 { font-size: 17px; margin-bottom: 12px; }
+
+      .artist-list { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .artist-item { padding: 8px; }
+      .artist-avatar { width: 50px; height: 50px; margin-bottom: 6px; }
+      .artist-name { font-size: 12px; }
+      .artist-info { font-size: 10px; margin-top: 3px; }
+
+      .song-list { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
+      .song-item { padding: 8px; height: 55px; }
+      .song-album-cover { width: 38px; height: 38px; min-width: 38px; margin-right: 8px; }
+      .song-name { font-size: 12px; }
+      .song-info { font-size: 10px; margin-top: 3px; }
+
+      .selected-artist { padding: 8px; margin-bottom: 12px; font-size: 13px; }
+
+      .bottom-bar { padding: 12px 15px; }
+      .bottom-bar .container { flex-direction: column; gap: 10px; }
+      .selected-count { font-size: 14px; }
+      .selected-count span { font-size: 18px; }
+      .btn-clear { padding: 6px 12px; font-size: 12px; }
+      .btn-next { padding: 8px 20px; font-size: 14px; }
+
+      .pk-container { padding: 0 5px; }
+      .pk-header { margin-bottom: 20px; }
+      .pk-header h1 { font-size: 22px; margin-bottom: 8px; }
+      .pk-round { font-size: 17px; margin-bottom: 8px; }
+      .pk-progress { font-size: 12px; }
+      .pk-progress-bar { height: 6px; margin-top: 8px; }
+
+      .pk-battle { gap: 12px; margin-bottom: 20px; }
+      .pk-song { flex: 1; min-width: 0; padding: 10px; }
+      .pk-song-cover { margin-bottom: 8px; }
+      .pk-song-name { font-size: 14px; margin-bottom: 4px; }
+      .pk-song-artist { font-size: 11px; margin-bottom: 8px; }
+      .pk-song-vote { padding: 8px; font-size: 12px; }
+      .pk-vs { font-size: 28px; min-width: 40px; flex-shrink: 0; }
+
+      .pk-btn-next { padding: 12px 24px; font-size: 16px; margin: 15px auto; }
+
+      .result-container { padding: 0 5px; }
+      .result-header { margin-bottom: 20px; }
+      .result-header h1 { font-size: 26px; margin-bottom: 8px; }
+      .champion { padding: 20px; margin-bottom: 20px; }
+      .champion-crown { font-size: 48px; margin-bottom: 8px; }
+      .champion-cover { width: 150px; height: 150px; margin: 12px auto; }
+      .champion-name { font-size: 22px; margin-bottom: 8px; }
+      .champion-artist { font-size: 15px; }
+
+      .result-bracket { padding: 15px; margin-bottom: 15px; }
+      .result-round { margin-bottom: 15px; }
+      .result-round-title { font-size: 15px; margin-bottom: 8px; }
+      .result-match { padding: 8px; margin-bottom: 6px; }
+      .result-song { font-size: 12px; }
+      .result-vs { padding: 0 10px; font-size: 12px; }
+
+      .btn-back { padding: 12px 24px; font-size: 14px; margin: 15px auto; }
     }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--fg); background: var(--bg); line-height: 1.6; }
-    .container { max-width: 960px; margin: 40px auto; padding: 0 20px; }
+
     @media (max-width: 480px) {
-      .container { margin: 20px auto; padding: 0 16px; }
-      header.site-header h1 { font-size: 22px; }
-      .block { padding: 16px; }
+      body { padding: 8px; padding-bottom: 75px; }
+      h1 { font-size: 18px; margin-bottom: 12px; }
+
+      .search-box { padding: 12px; margin-bottom: 12px; }
+      .search-box input { padding: 7px; font-size: 13px; }
+      .search-box button { padding: 7px 14px; font-size: 13px; }
+
+      .result-section { padding: 12px; margin-bottom: 12px; }
+      .result-section h2 { font-size: 15px; margin-bottom: 10px; }
+
+      .artist-list { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+      .artist-item { padding: 6px; }
+      .artist-avatar { width: 45px; height: 45px; margin-bottom: 5px; }
+      .artist-name { font-size: 11px; }
+      .artist-info { font-size: 9px; margin-top: 2px; }
+
+      .song-list { grid-template-columns: 1fr !important; gap: 6px; }
+      .song-item { padding: 7px; height: 50px; }
+      .song-album-cover { width: 35px; height: 35px; min-width: 35px; margin-right: 6px; }
+      .song-name { font-size: 11px; }
+      .song-info { font-size: 9px; margin-top: 2px; }
+
+      .bottom-bar { padding: 10px 12px; }
+      .selected-count { font-size: 13px; }
+      .selected-count span { font-size: 16px; }
+      .btn-clear { padding: 5px 10px; font-size: 11px; }
+      .btn-next { padding: 7px 16px; font-size: 13px; }
+
+      .pk-header h1 { font-size: 20px; }
+      .pk-round { font-size: 15px; }
+      .pk-progress { font-size: 11px; }
+
+      .pk-battle { gap: 10px; margin-bottom: 15px; }
+      .pk-song { padding: 8px; }
+      .pk-song-name { font-size: 13px; }
+      .pk-song-artist { font-size: 10px; }
+      .pk-song-vote { padding: 6px; font-size: 11px; }
+      .pk-vs { font-size: 24px; min-width: 35px; }
+
+      .result-header h1 { font-size: 22px; }
+      .champion { padding: 15px; }
+      .champion-crown { font-size: 40px; }
+      .champion-cover { width: 120px; height: 120px; margin: 10px auto; }
+      .champion-name { font-size: 18px; }
+      .champion-artist { font-size: 13px; }
+
+      .result-round-title { font-size: 13px; }
+      .result-song { font-size: 11px; }
     }
-    header.site-header { margin-bottom: 24px; }
-    header.site-header h1 { font-size: 28px; font-weight: 600; margin: 0; }
-    .badge { display: inline-block; margin-left: 8px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 12px; font-size: 12px; color: var(--muted); }
-    .sub { margin-top: 8px; color: var(--muted); font-size: 14px; }
-    .block { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); }
-    .block h2 { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
-    .kvs { display: grid; grid-template-columns: 100px 1fr; gap: 8px 12px; align-items: start; }
-    .kvs div:first-child { color: var(--muted); flex-shrink: 0; }
-    .kvs div:last-child { word-break: break-all; overflow-wrap: anywhere; min-width: 0; overflow: hidden; }
-    @media (max-width: 480px) {
-      .kvs { grid-template-columns: 1fr; gap: 4px 12px; }
-      .kvs div:first-child { font-weight: 500; }
-    }
-    ul.links { list-style: none; padding: 0; margin: 0; }
-    ul.links li { margin: 8px 0; }
-    ul.links a { color: var(--fg); text-decoration: none; border-bottom: 1px dotted var(--border); transition: all 0.2s ease; }
-    ul.links a:hover { color: var(--accent); border-bottom-color: var(--accent); }
-    pre { margin: 0; background: #f9f9f9; border: 1px solid var(--border); border-radius: 6px; padding: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
-    code { font-family: 'Courier New', monospace; font-size: 13px; }
-    @media (max-width: 480px) {
-      code { font-size: 12px; }
-    }
-    footer.site-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); text-align: center; }
-    footer.site-footer a { color: var(--fg); text-decoration: none; transition: color 0.2s ease; }
-    footer.site-footer a:hover { color: var(--accent); }
   </style>
 </head>
 <body>
-  <main class="container">
-    <header class="site-header">
-      <h1>网易云音乐 API Enhanced <span id="api-version" class="badge"></span></h1>
-      <p class="sub">🔍 A revival project for NeteaseCloudMusicApi Node.js Api Services || 网易云音乐 API 备份 + 增强 || 本项目自原版v4.28.0版本后开始自行维护</p>
-    </header>
+  <div class="container">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="输入歌手名称..." />
+      <button id="searchBtn" onclick="searchArtist()">搜索</button>
+    </div>
 
-    <section class="block">
-      <h2>状态</h2>
-      <div class="kvs">
-        <div>Base URL</div><div id="base-url">—</div>
-        <div>当前页</div><div id="current-url">—</div>
+    <div id="errorMsg"></div>
+
+    <div class="result-section" id="artistSection" style="display:none;">
+      <h2>搜索结果</h2>
+      <ul class="artist-list" id="artistList"></ul>
+    </div>
+
+    <div class="result-section" id="songSection" style="display:none;">
+      <div class="selected-artist" id="selectedArtist"></div>
+      <h2>歌曲列表 <span style="font-size:14px;color:#666;font-weight:normal;">(点击选择，最多32首)</span></h2>
+      <div id="songLoading"></div>
+      <ul class="song-list" id="songList" style="display:none;"></ul>
+    </div>
+  </div>
+
+  <div class="bottom-bar" id="selectionBar">
+    <div class="container">
+      <div class="selected-count">已选择: <span id="countNum">0</span> / 32</div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-clear" id="clearBtn" onclick="clearSelection()" disabled>清空选择</button>
+        <button class="btn-next" id="nextBtn" onclick="startPK()" disabled>下一步</button>
+        <button class="btn-debug" onclick="debugSkipToResults()" style="display:none;padding:7px 16px;font-size:13px;background:#ff6b6b;color:white;border:none;border-radius:6px;cursor:pointer;">Debug</button>
       </div>
-    </section>
+    </div>
+  </div>
 
-    <section class="block">
-      <h2>文档</h2>
-      <p><a href="/docs" target="_blank">查看在线文档</a></p>
-    </section>
-
-    <section class="block">
-      <h2>常用接口</h2>
-      <ul class="links">
-        <li><a href="/search?keywords=妖精小姐的魔法邀约">搜索音乐: <code>GET /search</code></a></li>
-        <li><a href="/song/detail?ids=2756058128">获取音乐详情: <code>GET /song/detail</code></a></li>
-        <li><a href="/comment/music?id=2756058128&limit=1">获取音乐评论: <code>GET /comment/music</code></a></li>
-        <li><a href="/song/url/v1?id=2756058128&level=exhigh">获取音乐播放链接: <code>GET /song/url/v1</code></a></li>
-      </ul>
-    </section>
-
-    <section class="block">
-      <h2>调试部分</h2>
-      <pre><code>curl -s {origin}/inner/version
-curl -s {origin}/search?keywords=网易云</code></pre>
-      <div style="margin-top:10px; line-height:2;">
-        <a href="/api.html">交互式调试</a> ·
-        <a href="/qrlogin.html">二维码登录示例</a> ·
-        <a href="/unblock_test.html">解灰测试</a> ·
-        <a href="/audio_match_demo/index.html">听歌识曲 Demo</a> ·
-        <a href="/cloud.html">云盘上传</a> ·
-        <a href="/playlist_import.html">歌单导入</a> ·
-        <a href="/eapi_decrypt.html">EAPI 解密</a> ·
-        <a href="/listen_together_host.html">一起听示例</a> ·
-        <a href="/playlist_cover_update.html">更新歌单封面示例</a> ·
-        <a href="/avatar_update.html">头像更新示例</a>
+  <div class="pk-container" id="pkContainer">
+    <div class="pk-header">
+      <h1>歌曲擂台</h1>
+      <div class="pk-round" id="pkRound">32强</div>
+      <div class="pk-progress">
+        <span id="pkProgress">第 1 / 31 场</span>
+        <div class="pk-progress-bar">
+          <div class="pk-progress-fill" id="pkProgressFill" style="width: 0%"></div>
+        </div>
       </div>
-    </section>
+    </div>
 
-    <footer class="site-footer">
-      <a href="https://github.com/neteasecloudmusicapienhanced/api-enhanced" target="_blank">GitHub</a>
-    </footer>
-  </main>
+    <div class="pk-battle" id="pkBattle">
+      <div class="pk-song" id="pkSong1" onclick="voteSong(0)">
+        <img class="pk-song-cover" id="pkCover1" src="" alt="歌曲封面" />
+        <div class="pk-song-name" id="pkName1"></div>
+        <div class="pk-song-artist" id="pkArtist1"></div>
+        <div class="pk-song-vote">投票</div>
+      </div>
+      <div class="pk-vs">VS</div>
+      <div class="pk-song" id="pkSong2" onclick="voteSong(1)">
+        <img class="pk-song-cover" id="pkCover2" src="" alt="歌曲封面" />
+        <div class="pk-song-name" id="pkName2"></div>
+        <div class="pk-song-artist" id="pkArtist2"></div>
+        <div class="pk-song-vote">投票</div>
+      </div>
+    </div>
+
+    <button class="pk-btn-next" id="pkNextBtn" onclick="nextBattle()" disabled>下一场</button>
+  </div>
+
+  <div class="result-container" id="resultContainer">
+    <div class="result-header">
+      <h1>歌曲擂台结果</h1>
+    </div>
+
+    <div class="champion" id="championBox">
+      <div class="champion-crown">👑</div>
+      <img class="champion-cover" id="championCover" src="" alt="冠军封面" />
+      <div class="champion-name" id="championName"></div>
+      <div class="champion-artist" id="championArtist"></div>
+    </div>
+
+    <div class="result-visual" id="resultVisual">
+      <div class="result-visual-title">擂台总览</div>
+      <div id="visualContent"></div>
+    </div>
+
+    <div class="result-bracket" id="resultBracket"></div>
+
+    <button class="btn-back" onclick="backToSelection()">返回重新选择</button>
+  </div>
 
   <script>
-    // Redirect to artist search page
-    window.location.href = '/artist_search.html';
+    const API_BASE = window.location.origin;
+    const MAX_SELECT = 32;
+    let selectedSongs = new Set();
+    let allSongs = [];
+    let songCoverCache = {};
+
+    async function searchArtist() {
+      const keyword = document.getElementById('searchInput').value.trim();
+      if (!keyword) {
+        showError('请输入搜索关键词');
+        return;
+      }
+
+      clearError();
+      const btn = document.getElementById('searchBtn');
+      btn.disabled = true;
+      btn.textContent = '搜索中...';
+
+      try {
+        const response = await fetch(`${API_BASE}/search?keywords=${encodeURIComponent(keyword)}&type=100&limit=10`);
+        const data = await response.json();
+
+        if (data.code === 200 && data.result && data.result.artists) {
+          displayArtists(data.result.artists);
+        } else {
+          showError('未找到相关歌手');
+        }
+      } catch (error) {
+        showError('搜索失败: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '搜索';
+      }
+    }
+
+    function displayArtists(artists) {
+      const list = document.getElementById('artistList');
+      list.innerHTML = '';
+
+      artists.forEach(artist => {
+        const li = document.createElement('li');
+        li.className = 'artist-item';
+        const avatarUrl = artist.picUrl || artist.img1v1Url || '';
+        li.innerHTML = `
+          <img class="artist-avatar" src="${avatarUrl}?param=100y100" alt="${artist.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2240%22>♪</text></svg>'" />
+          <div class="artist-name">${artist.name}</div>
+          <div class="artist-info">${artist.musicSize || 0} 首歌曲</div>
+        `;
+        li.onclick = () => loadArtistSongs(artist.id, artist.name);
+        list.appendChild(li);
+      });
+
+      document.getElementById('artistSection').style.display = 'block';
+    }
+
+    async function loadArtistSongs(artistId, artistName) {
+      document.getElementById('songSection').style.display = 'block';
+      document.getElementById('selectedArtist').innerHTML = `当前歌手: <strong>${artistName}</strong>`;
+      document.getElementById('songLoading').innerHTML = '<div class="loading">加载中...</div>';
+      document.getElementById('songList').style.display = 'none';
+
+      try {
+        const response = await fetch(`${API_BASE}/artist/top/song?id=${artistId}`);
+        const data = await response.json();
+
+        document.getElementById('songLoading').innerHTML = '';
+
+        if (data.code === 200 && data.songs) {
+          displaySongs(data.songs);
+        } else {
+          showError('获取歌曲列表失败: ' + (data.msg || '未知错误'));
+        }
+      } catch (error) {
+        document.getElementById('songLoading').innerHTML = '';
+        showError('获取歌曲失败: ' + error.message);
+      }
+    }
+
+    function displaySongs(songs) {
+      allSongs = songs.slice(0, 48);
+      const list = document.getElementById('songList');
+      list.innerHTML = '';
+
+      selectedSongs.clear();
+
+      allSongs.forEach((song, index) => {
+        if (index < MAX_SELECT) {
+          selectedSongs.add(song.id);
+        }
+      });
+
+      renderSongList();
+      updateCount();
+
+      list.style.display = 'block';
+    }
+
+    function renderSongList() {
+      const list = document.getElementById('songList');
+      list.innerHTML = '';
+
+      allSongs.forEach((song) => {
+        const li = document.createElement('li');
+        const isSelected = selectedSongs.has(song.id);
+        const isDisabled = !isSelected && selectedSongs.size >= MAX_SELECT;
+        li.className = 'song-item' + (isSelected ? ' selected' : '') + (isDisabled ? ' disabled' : '');
+
+        const albumPic = song.al && song.al.picUrl ? song.al.picUrl : '';
+        const artists = song.ar ? song.ar.map(a => a.name).join(', ') : '未知歌手';
+
+        const albumImg = albumPic
+          ? `<img class="song-album-cover" src="${albumPic}?param=100y100" alt="专辑封面" onerror="this.style.display='none'" />`
+          : `<div class="song-album-cover" style="display:flex;align-items:center;justify-content:center;background:#eee;color:#999;">♪</div>`;
+
+        li.innerHTML = `
+          ${albumImg}
+          <div class="song-info-box">
+            <div class="song-name">${isSelected ? '✓ ' : ''}${song.name}</div>
+            <div class="song-info">${artists}</div>
+          </div>
+        `;
+
+        if (!isDisabled) {
+          li.onclick = () => toggleSong(song.id);
+        }
+
+        list.appendChild(li);
+      });
+    }
+
+    function toggleSong(songId) {
+      if (selectedSongs.has(songId)) {
+        selectedSongs.delete(songId);
+      } else {
+        if (selectedSongs.size >= MAX_SELECT) {
+          showError('最多只能选择32首歌曲');
+          return;
+        }
+        selectedSongs.add(songId);
+      }
+      renderSongList();
+      updateCount();
+    }
+
+    function clearSelection() {
+      selectedSongs.clear();
+      renderSongList();
+      updateCount();
+    }
+
+    function updateCount() {
+      document.getElementById('countNum').textContent = selectedSongs.size;
+      document.getElementById('clearBtn').disabled = selectedSongs.size === 0;
+      document.getElementById('nextBtn').disabled = selectedSongs.size !== MAX_SELECT;
+    }
+
+    function showError(message) {
+      document.getElementById('errorMsg').innerHTML = `<div class="error">${message}</div>`;
+    }
+
+    function clearError() {
+      document.getElementById('errorMsg').innerHTML = '';
+    }
+
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchArtist();
+      }
+    });
+
+    let pkState = {
+      currentRound: 0,
+      currentMatch: 0,
+      totalMatches: 0,
+      completedMatches: 0,
+      rounds: [],
+      results: [],
+      currentPair: null,
+      voted: false
+    };
+
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function startPK() {
+      if (selectedSongs.size !== MAX_SELECT) {
+        showError('请选择32首歌曲后再开始PK');
+        return;
+      }
+
+      const songs = allSongs.filter(s => selectedSongs.has(s.id));
+      const shuffled = shuffleArray(songs);
+
+      pkState = {
+        currentRound: 0,
+        currentMatch: 0,
+        completedMatches: 0,
+        rounds: [],
+        results: [],
+        currentPair: null,
+        voted: false
+      };
+
+      const roundNames = ['32强', '16强', '8强', '4强', '2强', '冠军'];
+
+      const firstRoundMatches = [];
+      for (let i = 0; i < shuffled.length; i += 2) {
+        if (i + 1 < shuffled.length) {
+          firstRoundMatches.push({
+            song1: shuffled[i],
+            song2: shuffled[i + 1],
+            winner: null
+          });
+        }
+      }
+
+      pkState.rounds.push({
+        name: roundNames[0],
+        matches: firstRoundMatches
+      });
+      pkState.totalMatches = firstRoundMatches.length;
+
+      document.getElementById('selectionBar').style.display = 'none';
+      document.querySelector('.container').style.display = 'none';
+      document.getElementById('pkContainer').style.display = 'block';
+
+      loadCurrentMatch();
+    }
+
+    function loadCurrentMatch() {
+      const round = pkState.rounds[pkState.currentRound];
+      const match = round.matches[pkState.currentMatch];
+
+      pkState.currentPair = match;
+      pkState.voted = false;
+
+      document.getElementById('pkRound').textContent = round.name;
+      document.getElementById('pkProgress').textContent = `第 ${pkState.currentMatch + 1} / ${round.matches.length} 场`;
+      document.getElementById('pkProgressFill').style.width = `${(pkState.currentMatch / round.matches.length) * 100}%`;
+
+      const song1 = match.song1;
+      const song2 = match.song2;
+
+      const cover1 = getSongCover(song1);
+      const cover2 = getSongCover(song2);
+
+      document.getElementById('pkCover1').src = cover1;
+      document.getElementById('pkCover2').src = cover2;
+
+      document.getElementById('pkName1').textContent = song1.name;
+      document.getElementById('pkName2').textContent = song2.name;
+
+      const artist1 = song1.ar ? song1.ar.map(a => a.name).join(', ') : '未知歌手';
+      const artist2 = song2.ar ? song2.ar.map(a => a.name).join(', ') : '未知歌手';
+      document.getElementById('pkArtist1').textContent = artist1;
+      document.getElementById('pkArtist2').textContent = artist2;
+
+      document.getElementById('pkSong1').className = 'pk-song';
+      document.getElementById('pkSong2').className = 'pk-song';
+      document.getElementById('pkNextBtn').disabled = true;
+    }
+
+    function getSongCover(song) {
+      if (songCoverCache[song.id]) {
+        return songCoverCache[song.id];
+      }
+
+      const defaultCover = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 300 300%22><rect fill=%22%23f5f5f5%22 width=%22300%22 height=%22300%22/><text x=%22150%22 y=%22160%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2280%22>♪</text></svg>';
+
+      if (song.al && song.al.picUrl) {
+        songCoverCache[song.id] = song.al.picUrl + '?param=300y300';
+      } else {
+        songCoverCache[song.id] = defaultCover;
+      }
+
+      return songCoverCache[song.id];
+    }
+
+    function voteSong(index) {
+      const match = pkState.currentPair;
+      const winner = index === 0 ? match.song1 : match.song2;
+      match.winner = winner;
+
+      if (index === 0) {
+        document.getElementById('pkSong1').className = 'pk-song selected';
+        document.getElementById('pkSong2').className = 'pk-song';
+      } else {
+        document.getElementById('pkSong1').className = 'pk-song';
+        document.getElementById('pkSong2').className = 'pk-song selected';
+      }
+
+      document.getElementById('pkNextBtn').disabled = false;
+    }
+
+    function nextBattle() {
+      const round = pkState.rounds[pkState.currentRound];
+
+      if (pkState.currentMatch + 1 < round.matches.length) {
+        pkState.currentMatch++;
+        loadCurrentMatch();
+      } else {
+        const winners = round.matches.filter(m => m.winner).map(m => m.winner);
+
+        if (winners.length === 1) {
+          showResults(winners[0]);
+        } else {
+          pkState.currentRound++;
+          pkState.currentMatch = 0;
+
+          const shuffledWinners = shuffleArray(winners);
+          const nextRoundMatches = [];
+          for (let i = 0; i < shuffledWinners.length; i += 2) {
+            if (i + 1 < shuffledWinners.length) {
+              nextRoundMatches.push({
+                song1: shuffledWinners[i],
+                song2: shuffledWinners[i + 1],
+                winner: null
+              });
+            }
+          }
+
+          const roundNames = ['32强', '16强', '8强', '4强', '2强', '冠军'];
+          pkState.rounds[pkState.currentRound] = {
+            name: roundNames[pkState.currentRound] || `${shuffledWinners.length}强`,
+            matches: nextRoundMatches
+          };
+
+          loadCurrentMatch();
+        }
+      }
+    }
+
+    function showResults(champion) {
+      document.getElementById('pkContainer').style.display = 'none';
+      document.getElementById('resultContainer').style.display = 'block';
+
+      document.getElementById('championName').textContent = champion.name;
+      const artist = champion.ar ? champion.ar.map(a => a.name).join(', ') : '未知歌手';
+      document.getElementById('championArtist').textContent = artist;
+      document.getElementById('championCover').src = getSongCover(champion);
+
+      // Generate visual content - show from champion to 32强
+      const visualContent = document.getElementById('visualContent');
+      visualContent.innerHTML = '';
+
+      // Reverse order: champion first, then 2强, 4强, 8强, 16强, 32强
+      const reversedRounds = [...pkState.rounds].reverse();
+
+      reversedRounds.forEach((round, roundIndex) => {
+        const roundDiv = document.createElement('div');
+        roundDiv.className = 'visual-round';
+
+        const label = document.createElement('div');
+        label.className = 'visual-round-label';
+        label.textContent = round.name;
+        roundDiv.appendChild(label);
+
+        const imagesDiv = document.createElement('div');
+        imagesDiv.className = 'visual-images';
+
+        round.matches.forEach(match => {
+          if (!match.song1) return;
+
+          const isWinner1 = match.winner && match.winner.id === match.song1.id;
+
+          // Song 1
+          const wrapper1 = document.createElement('div');
+          wrapper1.className = `visual-img-wrapper ${isWinner1 ? 'winner' : ''}`;
+
+          const cover1 = getSongCover(match.song1);
+          const name1 = match.song1.name;
+          wrapper1.innerHTML = `
+            <img src="${cover1}" alt="${name1}" />
+            <div class="visual-img-label">${name1}</div>
+          `;
+          imagesDiv.appendChild(wrapper1);
+
+          // Song 2 (if exists)
+          if (match.song2) {
+            const isWinner2 = match.winner && match.winner.id === match.song2.id;
+            const wrapper2 = document.createElement('div');
+            wrapper2.className = `visual-img-wrapper ${isWinner2 ? 'winner' : ''}`;
+
+            const cover2 = getSongCover(match.song2);
+            const name2 = match.song2.name;
+            wrapper2.innerHTML = `
+              <img src="${cover2}" alt="${name2}" />
+              <div class="visual-img-label">${name2}</div>
+            `;
+            imagesDiv.appendChild(wrapper2);
+          }
+        });
+
+        roundDiv.appendChild(imagesDiv);
+        visualContent.appendChild(roundDiv);
+      });
+
+      // Generate bracket content
+      const bracket = document.getElementById('resultBracket');
+      bracket.innerHTML = '';
+
+      pkState.rounds.forEach((round, roundIndex) => {
+        const roundDiv = document.createElement('div');
+        roundDiv.className = 'result-round';
+
+        const title = document.createElement('div');
+        title.className = 'result-round-title';
+        title.textContent = round.name;
+        roundDiv.appendChild(title);
+
+        round.matches.forEach(match => {
+          if (!match.song1 || !match.song2) return;
+
+          const matchDiv = document.createElement('div');
+          matchDiv.className = 'result-match';
+
+          const isWinner1 = match.winner && match.winner.id === match.song1.id;
+          const isWinner2 = match.winner && match.winner.id === match.song2.id;
+
+          matchDiv.innerHTML = `
+            <div class="result-song ${isWinner1 ? 'winner' : 'loser'}">${match.song1.name}</div>
+            <div class="result-vs">VS</div>
+            <div class="result-song ${isWinner2 ? 'winner' : 'loser'}">${match.song2.name}</div>
+          `;
+
+          roundDiv.appendChild(matchDiv);
+        });
+
+        bracket.appendChild(roundDiv);
+      });
+    }
+
+    function backToSelection() {
+      document.getElementById('resultContainer').style.display = 'none';
+      document.getElementById('pkContainer').style.display = 'none';
+      document.querySelector('.container').style.display = 'block';
+      document.getElementById('selectionBar').style.display = 'block';
+    }
+
+    function debugSkipToResults() {
+      if (selectedSongs.size === 0) {
+        alert('请先选择至少一首歌曲');
+        return;
+      }
+
+      const selectedArray = Array.from(selectedSongs).map(id => allSongs.find(s => s.id === id)).filter(Boolean);
+
+      if (selectedArray.length < 2) {
+        alert('请至少选择两首歌曲');
+        return;
+      }
+
+      // Initialize pkState
+      pkState = {
+        currentRound: 0,
+        currentMatch: 0,
+        completedMatches: 0,
+        totalMatches: 0,
+        voted: false,
+        currentPair: null,
+        rounds: []
+      };
+
+      // Shuffle selected songs
+      let currentSongs = shuffleArray([...selectedArray]);
+
+      // Create rounds until we have a champion
+      let roundIndex = 0;
+      const roundNames = ['32强', '16强', '8强', '4强', '2强', '冠军'];
+
+      while (currentSongs.length > 1) {
+        const roundName = roundIndex < roundNames.length ? roundNames[roundIndex] : `${currentSongs.length}强`;
+        const matches = [];
+
+        for (let i = 0; i < currentSongs.length; i += 2) {
+          if (i + 1 < currentSongs.length) {
+            const winner = Math.random() > 0.5 ? currentSongs[i] : currentSongs[i + 1];
+            matches.push({
+              song1: currentSongs[i],
+              song2: currentSongs[i + 1],
+              winner: winner
+            });
+          } else {
+            // Odd song out automatically advances
+            matches.push({
+              song1: currentSongs[i],
+              song2: null,
+              winner: currentSongs[i]
+            });
+          }
+        }
+
+        pkState.rounds.push({
+          name: roundName,
+          matches: matches
+        });
+
+        currentSongs = matches.map(m => m.winner);
+        roundIndex++;
+      }
+
+      // Get champion
+      const champion = currentSongs[0];
+
+      // Hide selection and PK, show results
+      document.querySelector('.container').style.display = 'none';
+      document.getElementById('selectionBar').style.display = 'none';
+      document.getElementById('pkContainer').style.display = 'none';
+      document.getElementById('resultContainer').style.display = 'block';
+
+      // Show results
+      showResults(champion);
+    }
   </script>
 </body>
 </html>
