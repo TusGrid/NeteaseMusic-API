@@ -55,9 +55,10 @@
     .btn-next:hover { background: #a00a0a; }
     .btn-next:disabled { background: #ccc; cursor: not-allowed; }
 
-    .pk-container { display: none; max-width: 800px; margin: 0 auto; }
+    .pk-container { display: none; max-width: 800px; margin: 0 auto; min-height: 100vh; }
+    .pk-container-inner { display: flex; flex-direction: column; justify-content: center; min-height: 100vh; padding-top: 10vh; }
     .pk-header { text-align: center; margin-bottom: 30px; }
-    .pk-header h1 { font-size: 28px; margin-bottom: 10px; }
+    .pk-header h1 { font-size: 36px; margin-bottom: 10px; }
     .pk-round { font-size: 20px; color: #c20c0c; font-weight: 600; margin-bottom: 10px; }
     .pk-progress { font-size: 14px; color: #666; }
     .pk-progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; margin-top: 10px; overflow: hidden; }
@@ -165,8 +166,9 @@
       .btn-next { padding: 8px 20px; font-size: 14px; }
 
       .pk-container { padding: 0 5px; }
+      .pk-container-inner { padding-top: 5vh; }
       .pk-header { margin-bottom: 20px; }
-      .pk-header h1 { font-size: 22px; margin-bottom: 8px; }
+      .pk-header h1 { font-size: 28px; margin-bottom: 8px; }
       .pk-round { font-size: 17px; margin-bottom: 8px; }
       .pk-progress { font-size: 12px; }
       .pk-progress-bar { height: 6px; margin-top: 8px; }
@@ -229,7 +231,7 @@
       .btn-clear { padding: 5px 10px; font-size: 11px; }
       .btn-next { padding: 7px 16px; font-size: 13px; }
 
-      .pk-header h1 { font-size: 20px; }
+      .pk-header h1 { font-size: 26px; }
       .pk-round { font-size: 15px; }
       .pk-progress { font-size: 11px; }
 
@@ -282,12 +284,12 @@
       <div style="display:flex;gap:10px;">
         <button class="btn-clear" id="clearBtn" onclick="clearSelection()" disabled>清空选择</button>
         <button class="btn-next" id="nextBtn" onclick="startPK()" disabled>下一步</button>
-        <button class="btn-debug" onclick="debugSkipToResults()" style="padding:7px 16px;font-size:13px;background:#ff6b6b;color:white;border:none;border-radius:6px;cursor:pointer;">Debug</button>
       </div>
     </div>
   </div>
 
   <div class="pk-container" id="pkContainer">
+    <div class="pk-container-inner">
     <div class="pk-header">
       <h1>歌曲擂台</h1>
       <div class="pk-round" id="pkRound">32强</div>
@@ -316,6 +318,7 @@
     </div>
 
     <button class="pk-btn-next" id="pkNextBtn" onclick="nextBattle()" disabled>下一场</button>
+    </div>
   </div>
 
   <div class="result-container" id="resultContainer">
@@ -616,6 +619,39 @@
         overlay1.style.backgroundImage = '';
         overlay2.style.backgroundImage = '';
       }, 500);
+
+      // Preload next match images
+      preloadNextMatch();
+    }
+
+    function preloadNextMatch() {
+      const round = pkState.rounds[pkState.currentRound];
+      let nextSong1, nextSong2;
+
+      if (pkState.currentMatch + 1 < round.matches.length) {
+        const nextMatch = round.matches[pkState.currentMatch + 1];
+        nextSong1 = nextMatch.song1;
+        nextSong2 = nextMatch.song2;
+      } else {
+        // Check if there's a next round
+        const winners = round.matches.filter(m => m.winner).map(m => m.winner);
+        if (winners.length > 1) {
+          const shuffledWinners = shuffleArray(winners);
+          if (shuffledWinners.length >= 2) {
+            nextSong1 = shuffledWinners[0];
+            nextSong2 = shuffledWinners[1];
+          }
+        }
+      }
+
+      if (nextSong1) {
+        const img1 = new Image();
+        img1.src = getSongCover(nextSong1);
+      }
+      if (nextSong2) {
+        const img2 = new Image();
+        img2.src = getSongCover(nextSong2);
+      }
     }
 
     function getSongCover(song) {
@@ -718,6 +754,9 @@
     function showResults(champion) {
       document.getElementById('pkContainer').style.display = 'none';
       document.getElementById('resultContainer').style.display = 'block';
+
+      // Scroll to top when showing results
+      window.scrollTo({ top: 0, behavior: 'smooth' });
 
       // Generate visual content - show champion first, then all rounds
       const visualContent = document.getElementById('visualContent');
