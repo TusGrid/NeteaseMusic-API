@@ -65,10 +65,12 @@
     .pk-progress-fill { height: 100%; background: linear-gradient(90deg, #c20c0c, #e53e3e); transition: width 0.3s; }
 
     .pk-battle { display: flex; gap: 20px; margin-bottom: 30px; align-items: stretch; justify-content: center; }
-    .pk-song { flex: 1; min-width: 0; max-width: 350px; background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; border: 3px solid transparent; display: flex; flex-direction: column; }
+    .pk-song { flex: 1; min-width: 0; max-width: 350px; background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; border: 3px solid transparent; display: flex; flex-direction: column; overflow: hidden; }
     .pk-song:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); border-color: #c20c0c; }
     .pk-song.selected { border-color: #c20c0c; background: #fff5f5; }
-    .pk-song-cover { width: 100%; aspect-ratio: 1; border-radius: 8px; margin-bottom: 12px; background: #f5f5f5; object-fit: cover; }
+    .pk-song-cover-wrapper { width: 100%; aspect-ratio: 1; border-radius: 8px; margin-bottom: 12px; background: #f5f5f5; overflow: hidden; }
+    .pk-song-cover { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+    .pk-song.selected .pk-song-cover { transform: scale(1.15); }
     .pk-song-name { font-size: 16px; font-weight: 600; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .pk-song-artist { font-size: 13px; color: #666; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .pk-song-vote { margin-top: auto; text-align: center; padding: 10px; background: #c20c0c; color: white; border-radius: 8px; font-size: 14px; font-weight: 600; }
@@ -131,6 +133,18 @@
 
     .btn-back { display: block; width: 100%; max-width: 400px; margin: 20px auto; padding: 15px 30px; background: #666; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
     .btn-back:hover { background: #555; }
+
+    .global-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; }
+    .song-stat-card { position: relative; aspect-ratio: 1; overflow: hidden; background: #f5f5f5; border-radius: 8px; }
+    .song-stat-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .song-stat-card-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 10px 8px 8px; }
+    .song-stat-card-name { font-size: 13px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; line-height: 1.3; }
+    .song-stat-card-stats { display: flex; justify-content: space-between; align-items: center; }
+    .song-stat-card-matches { font-size: 11px; color: rgba(255,255,255,0.8); }
+    .song-stat-card-winrate { font-size: 12px; font-weight: 700; color: #ffd700; }
+    .song-stat-card-no-data { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #f9f9f9; }
+    .song-stat-card-no-data-icon { font-size: 24px; color: #ccc; }
+    .song-stat-card-no-data-text { font-size: 10px; color: #999; margin-top: 4px; }
 
     @media (max-width: 768px) {
       body { padding: 10px; padding-bottom: 80px; }
@@ -200,6 +214,13 @@
       .result-vs { padding: 0 10px; font-size: 12px; }
 
       .btn-back { padding: 12px 24px; font-size: 14px; margin: 15px auto; }
+
+      .global-stats { margin-bottom: 15px; }
+      .global-stats-title { font-size: 15px; padding: 12px 15px; }
+      .global-stats-grid { grid-template-columns: repeat(4, 1fr); }
+      .song-stat-card-name { font-size: 10px; }
+      .song-stat-card-matches { font-size: 8px; }
+      .song-stat-card-winrate { font-size: 9px; }
     }
 
     @media (max-width: 480px) {
@@ -303,14 +324,18 @@
 
     <div class="pk-battle" id="pkBattle">
       <div class="pk-song" id="pkSong1" onclick="voteSong(0)">
-        <img class="pk-song-cover" id="pkCover1" src="" alt="歌曲封面" />
+        <div class="pk-song-cover-wrapper">
+          <img class="pk-song-cover" id="pkCover1" src="" alt="歌曲封面" />
+        </div>
         <div class="pk-song-name" id="pkName1"></div>
         <div class="pk-song-artist" id="pkArtist1"></div>
         <div class="pk-song-vote">投票</div>
       </div>
       <div class="pk-vs">VS</div>
       <div class="pk-song" id="pkSong2" onclick="voteSong(1)">
-        <img class="pk-song-cover" id="pkCover2" src="" alt="歌曲封面" />
+        <div class="pk-song-cover-wrapper">
+          <img class="pk-song-cover" id="pkCover2" src="" alt="歌曲封面" />
+        </div>
         <div class="pk-song-name" id="pkName2"></div>
         <div class="pk-song-artist" id="pkArtist2"></div>
         <div class="pk-song-vote">投票</div>
@@ -332,6 +357,14 @@
         <span class="bracket-arrow">▼</span>
       </div>
       <div class="bracket-content" id="bracketContent"></div>
+    </div>
+
+    <div class="result-bracket" id="globalStatsBracket">
+      <div class="bracket-toggle" onclick="toggleGlobalStats()">
+        <span class="bracket-toggle-text">查看全球胜率</span>
+        <span class="bracket-arrow" id="globalStatsArrow">▼</span>
+      </div>
+      <div class="bracket-content" id="globalStatsContent"></div>
     </div>
 
     <button class="btn-back" onclick="backToSelection()">返回重新选择</button>
@@ -607,9 +640,21 @@
       document.getElementById('pkArtist1').textContent = artist1;
       document.getElementById('pkArtist2').textContent = artist2;
 
+      const cover1El = document.getElementById('pkCover1');
+      const cover2El = document.getElementById('pkCover2');
+      cover1El.style.transition = 'none';
+      cover2El.style.transition = 'none';
+
       document.getElementById('pkSong1').className = 'pk-song';
       document.getElementById('pkSong2').className = 'pk-song';
       document.getElementById('pkNextBtn').disabled = true;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          cover1El.style.transition = '';
+          cover2El.style.transition = '';
+        });
+      });
 
       const overlay1 = document.getElementById('bgOverlay1');
       const overlay2 = document.getElementById('bgOverlay2');
@@ -751,12 +796,72 @@
       }
     }
 
+    async function saveMatchToDatabase(champion) {
+      try {
+        const championArtist = champion.ar ? champion.ar.map(a => a.name).join(', ') : '未知歌手';
+        const championCoverUrl = getSongCover(champion);
+
+        const matchData = {
+          champion: {
+            id: champion.id,
+            name: champion.name,
+          },
+          championArtist,
+          championCoverUrl,
+          totalSongs: selectedSongs.size,
+          totalRounds: pkState.rounds.length,
+          totalMatches: pkState.rounds.reduce((sum, r) => sum + r.matches.length, 0),
+          rounds: pkState.rounds.map((round, roundIndex) => ({
+            name: round.name,
+            index: roundIndex,
+            matches: round.matches.map(match => ({
+              song1: match.song1 ? {
+                id: match.song1.id,
+                name: match.song1.name,
+                artist: match.song1.ar ? match.song1.ar.map(a => a.name).join(', ') : '未知歌手',
+                coverUrl: getSongCover(match.song1),
+              } : null,
+              song2: match.song2 ? {
+                id: match.song2.id,
+                name: match.song2.name,
+                artist: match.song2.ar ? match.song2.ar.map(a => a.name).join(', ') : '未知歌手',
+                coverUrl: getSongCover(match.song2),
+              } : null,
+              winner: match.winner ? {
+                id: match.winner.id,
+              } : null,
+            })),
+          })),
+        };
+
+        const response = await fetch(`${API_BASE}/match/save?action=save&nickname=匿名用户`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ matchData }),
+        });
+        const result = await response.json();
+
+        if (result.code === 200 && result.success) {
+          console.log('Match saved successfully!');
+        } else {
+          console.warn('Failed to save match:', result.message);
+        }
+      } catch (error) {
+        console.error('Error saving match:', error);
+      }
+    }
+
     function showResults(champion) {
       document.getElementById('pkContainer').style.display = 'none';
       document.getElementById('resultContainer').style.display = 'block';
 
       // Scroll to top when showing results
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Save match results to database
+      saveMatchToDatabase(champion);
 
       // Generate visual content - show champion first, then all rounds
       const visualContent = document.getElementById('visualContent');
@@ -875,6 +980,141 @@
 
         bracketContent.appendChild(roundDiv);
       });
+
+      loadGlobalStats();
+    }
+
+    async function loadGlobalStats() {
+      const songIdSet = new Set();
+      pkState.rounds.forEach(round => {
+        round.matches.forEach(match => {
+          if (match.song1 && match.song1.id) songIdSet.add(match.song1.id);
+          if (match.song2 && match.song2.id) songIdSet.add(match.song2.id);
+        });
+      });
+      const songIds = Array.from(songIdSet);
+
+      if (songIds.length === 0) {
+        document.getElementById('globalStatsBracket').style.display = 'none';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/match/save?action=songs_statistics&songIds=${songIds.join(',')}`);
+        const result = await response.json();
+
+        const grid = document.createElement('div');
+        grid.className = 'global-stats-grid';
+
+        if (result.code === 200 && result.success && result.data.length > 0) {
+          const statsMap = {};
+          result.data.forEach(s => { statsMap[s.song_id] = s; });
+
+          const sortedSongIds = [...songIds].sort((a, b) => {
+            const statA = statsMap[a];
+            const statB = statsMap[b];
+            const winRateA = statA && statA.total_matches > 0 ? parseFloat(statA.win_rate) : -1;
+            const winRateB = statB && statB.total_matches > 0 ? parseFloat(statB.win_rate) : -1;
+            return winRateB - winRateA;
+          });
+
+          sortedSongIds.forEach(songId => {
+            const stat = statsMap[songId];
+            const card = document.createElement('div');
+            card.className = 'song-stat-card';
+
+            if (stat && stat.total_matches > 0) {
+              const coverUrl = getCoverUrlById(songId);
+              const name = getSongNameById(songId);
+              card.innerHTML = `
+                <img src="${coverUrl}" alt="${name}" />
+                <div class="song-stat-card-overlay">
+                  <div class="song-stat-card-name">${name}</div>
+                  <div class="song-stat-card-stats">
+                    <span class="song-stat-card-matches">${stat.total_matches}次</span>
+                    <span class="song-stat-card-winrate">${stat.win_rate}%</span>
+                  </div>
+                </div>
+              `;
+            } else {
+              const name = getSongNameById(songId);
+              const coverUrl = getCoverUrlById(songId);
+              card.innerHTML = `
+                <img src="${coverUrl}" alt="${name}" />
+                <div class="song-stat-card-overlay">
+                  <div class="song-stat-card-name">${name}</div>
+                  <div class="song-stat-card-stats">
+                    <span class="song-stat-card-matches">首次参赛</span>
+                    <span class="song-stat-card-winrate">-</span>
+                  </div>
+                </div>
+              `;
+            }
+            grid.appendChild(card);
+          });
+        } else {
+          songIds.forEach(songId => {
+            const name = getSongNameById(songId);
+            const coverUrl = getCoverUrlById(songId);
+            const card = document.createElement('div');
+            card.className = 'song-stat-card';
+            card.innerHTML = `
+              <img src="${coverUrl}" alt="${name}" />
+              <div class="song-stat-card-overlay">
+                <div class="song-stat-card-name">${name}</div>
+                <div class="song-stat-card-stats">
+                  <span class="song-stat-card-matches">首次参赛</span>
+                  <span class="song-stat-card-winrate">-</span>
+                </div>
+              </div>
+            `;
+            grid.appendChild(card);
+          });
+        }
+
+        const content = document.getElementById('globalStatsContent');
+        content.innerHTML = '';
+        content.appendChild(grid);
+      } catch (error) {
+        console.error('Error loading global stats:', error);
+        document.getElementById('globalStatsBracket').style.display = 'none';
+      }
+    }
+
+    function toggleGlobalStats() {
+      const content = document.getElementById('globalStatsContent');
+      const arrow = document.getElementById('globalStatsArrow');
+      const text = document.querySelector('#globalStatsBracket .bracket-toggle-text');
+
+      if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        arrow.classList.remove('expanded');
+        text.textContent = '查看全球胜率';
+      } else {
+        content.classList.add('expanded');
+        arrow.classList.add('expanded');
+        text.textContent = '收起全球胜率';
+      }
+    }
+
+    function getCoverUrlById(songId) {
+      for (const round of pkState.rounds) {
+        for (const match of round.matches) {
+          if (match.song1 && match.song1.id === songId) return getSongCover(match.song1);
+          if (match.song2 && match.song2.id === songId) return getSongCover(match.song2);
+        }
+      }
+      return '';
+    }
+
+    function getSongNameById(songId) {
+      for (const round of pkState.rounds) {
+        for (const match of round.matches) {
+          if (match.song1 && match.song1.id === songId) return match.song1.name;
+          if (match.song2 && match.song2.id === songId) return match.song2.name;
+        }
+      }
+      return '';
     }
 
     function toggleBracket() {

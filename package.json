@@ -75,6 +75,7 @@
     "music-metadata": "^11.12.3",
     "node-forge": "^1.4.0",
     "pac-proxy-agent": "^7.2.0",
+    "pg": "^8.23.0",
     "qrcode": "^1.5.4",
     "safe-decode-uri-component": "^1.2.1",
     "tunnel": "^0.0.6",

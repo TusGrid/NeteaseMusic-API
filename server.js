@@ -11,6 +11,18 @@ const fileUpload = require('express-fileupload')
 const decode = require('safe-decode-uri-component')
 const logger = require('./util/logger.js')
 
+let dbInitialized = false
+async function ensureDatabaseReady() {
+  if (dbInitialized) return
+  try {
+    const { initDatabase } = require('./db')
+    await initDatabase()
+    dbInitialized = true
+  } catch (error) {
+    logger.error('Database initialization failed:', error.message)
+  }
+}
+
 /**
  * The version check result.
  * @readonly
@@ -298,6 +310,16 @@ async function constructServer(moduleDefs) {
         req.files,
       )
 
+      // 注入客户端IP到query中，供所有模块使用
+      let clientIp = req.ip
+      if (clientIp && clientIp.substring(0, 7) == '::ffff:') {
+        clientIp = clientIp.substring(7)
+      }
+      if (clientIp == '::1') {
+        clientIp = global.cnIp || '127.0.0.1'
+      }
+      query.ip = clientIp || 'unknown'
+
       try {
         const moduleResponse = await moduleDef.module(query, (...params) => {
           // 参数注入客户端IP
@@ -426,6 +448,7 @@ async function serveNcmApi(options) {
   const [_, app] = await Promise.all([
     checkVersionSubmission,
     constructServerSubmission,
+    process.env.DATABASE_URL ? ensureDatabaseReady() : Promise.resolve(),
   ])
 
   spinner.stop()
